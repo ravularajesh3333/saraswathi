@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1'
+        S3_BUCKET_NAME = 'latest0'
+        S3_FOLDER_PATH = 'latest/'
+        GITHUB_REPO = 'https://github.com/ravularajesh3333/saraswathi.git'
+        BRANCH_NAME = 'develop'
+        AWS_ACCESS_KEY_ID = 'AKIAVGMMERS6EYUBNSJW'
+        AWS_SECRET_ACCESS_KEY = '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'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                script {
+                    // Clone the GitHub repository
+                    git branch: BRANCH_NAME, url: GITHUB_REPO
+                }
+            }
+        }
+
+        stage('Deploy to S3') {
+            steps {
+                script {
+                    // Sync files to S3 bucket using AWS credentials
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY', credentialsId: 'git-s3']]) {
+                        sh "aws s3 sync . s3://${S3_BUCKET_NAME}/${S3_FOLDER_PATH} --exclude '*' --include '*'"
+                    }
+                }
+            }
+        }
+    }
+}
