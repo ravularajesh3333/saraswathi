@@ -99,3 +99,30 @@ pipeline {
         }
     }
 }
+
+
+
+
+
+def tagsFolder = "tagsFolder/"
+sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}${tagsFolder}"
+
+// Push tags to S3
+def tags = sh(script: 'git tag --list', returnStdout: true).trim().split('\n')
+for (tag in tags) {
+    sh "aws s3 sync . s3://${env.S3_BUCKET_NAME}/${s3FolderName}${tagsFolder}${tag}/ --exclude '*' --include '*${tag}*'"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
