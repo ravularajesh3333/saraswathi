@@ -1,0 +1,101 @@
+
+pipeline {
+    agent any
+    
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHSXHMCCNZ'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'durga-amma'
+    }
+    
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+        
+        
+        
+        stage('Example') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+                    
+                    def currentDate = new Date().format("yyyyMMdd")
+                    def s3FolderName = "${currentDate}/"
+                    
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}"
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+pipeline {
+    agent any
+    
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHSXHMCCNZ'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'durga-amma'
+    }
+    
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+        
+        
+        
+        stage('Example') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+                    
+                    
+                    // create as current date folder
+                    
+                    def currentDate = new Date().format("yyyyMMdd")
+                    def s3FolderName = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}"
+                    
+                    // Create a folder for branches
+                    def branchesFolder = "branches/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}${branchesFolder}"
+
+                    // Push branches to the branches folder in S3
+                    sh "aws s3 sync --delete --exclude '*' --include 'refs/heads/*' . s3://${env.S3_BUCKET_NAME}/${s3FolderName}${branchesFolder}"
+
+                    // Create a folder for tags
+                    def tagsFolder = "tags/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}${tagsFolder}"
+
+                    // Push tags to the tags folder in S3
+                    sh "aws s3 sync --delete --exclude '*' --include 'refs/tags/*' . s3://${env.S3_BUCKET_NAME}/${s3FolderName}${tagsFolder}"
+                    
+                    
+                }
+            }
+        }
+    }
+}
