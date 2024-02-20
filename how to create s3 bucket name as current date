@@ -12,6 +12,7 @@ pipeline {
         stage('Create S3 Folder') {
             steps {
                 script {
+                    sh 'aws s3 ls'
                     def currentDate = new Date().format("yyyyMMdd")
                     def s3FolderName = "${currentDate}"
 
