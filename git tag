@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHU4V7GKGI'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+        S3_FOLDER             = 'tags' // Specify the folder name where you want to store tags
+    }
+    
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+        
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+                    
+                    // create as current date folder
+                    def currentDate = new Date().format("yyyyMMdd")
+                    def s3FolderName = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}" 
+                }
+            }
+        }
+        
+        stage('Push tags to S3') {
+            steps {
+                script {
+                    def tags = sh(script: 'git tag --list', returnStdout: true).trim().split('\n')
+                    for (def tag in tags) {
+                        sh "aws s3 sync . s3://${S3_BUCKET_NAME}/${S3_FOLDER}/${tag} --exclude '*' --include '*${tag}*'"
+                    }
+                }
+            }
+        }
+    }
+}
