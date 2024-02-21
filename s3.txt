@@ -1,0 +1,330 @@
+git-id
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHX7QTOPKP'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+        
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+
+                    // create as current date folder
+                    def currentDate = new Date().format("yyyyMMdd")
+                    def s3FolderName = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}" 
+                }
+            }
+        }
+
+        stage('Push tags to S3') {
+            steps {
+                script {
+                    // create as  tagsFolder
+                    def tagsFolder = "tagsFolder/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${s3FolderName}${tagsFolder}"
+
+                    def tags = sh(script: 'git tag --list', returnStdout: true).trim().split('\n')
+                    for (def tag in tags) {
+                        sh "aws s3 sync . s3://${S3_BUCKET_NAME}/${s3FolderName}/${tagsFolder} --exclude '*' --include '*${tag}*'"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHX7QTOPKP'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+
+                    // create as current date folder
+                    def currentDate = new Date().format("yyyyMMdd")
+                    env.S3_FOLDER_NAME = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${env.S3_FOLDER_NAME}" 
+                }
+            }
+        }
+
+        stage('Push tags to S3') {
+            steps {
+                script {
+                    // create tags folder
+                    def tagsFolder = "${env.S3_FOLDER_NAME}tagsFolder/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${tagsFolder}"
+
+                    def tags = sh(script: 'git tag --list', returnStdout: true).trim().split('\n')
+                    for (def tag in tags) {
+                        sh "aws s3 cp .git/refs/tags/${tag} s3://${env.S3_BUCKET_NAME}/${tagsFolder}${tag}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHX7QTOPKP'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+
+                    // create as current date folder
+                    def currentDate = new Date().format("yyyyMMdd")
+                    env.S3_FOLDER_NAME = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${env.S3_FOLDER_NAME}" 
+                }
+            }
+        }
+
+        stage('Push tags to S3') {
+            steps {
+                script {
+                    // create tags folder
+                    def tagsFolder = "${env.S3_FOLDER_NAME}tagsFolder/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${tagsFolder}"
+
+                    def tags = sh(script: 'git tag --list', returnStdout: true).trim().split('\n')
+            for (def tag in tags) {
+                // Copy the tag file to S3
+                sh "aws s3 cp .git/refs/tags/${tag} s3://${env.S3_BUCKET_NAME}/${tagsFolder}${tag}"
+            }
+                }
+            }
+        }
+     
+
+    }
+}
+
+
+
+                stage('Push tags to S3') {
+    steps {
+        script {
+            // create tags folder
+            def tagsFolder = "${env.S3_FOLDER_NAME}tagsFolder/"
+            sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${tagsFolder}"
+
+            // Fetch tags from the Git repository
+            def tags = sh(script: 'git tag --list', returnStdout: true).trim()
+            echo "Tags: [${tags}]"
+
+            // Split tags into a list
+            def tagList = tags.split('\n')
+            echo "Number of tags: ${tagList.size()}"
+
+            // Copy the tag files to S3 only if the tag is non-empty
+            for (def tag in tagList) {
+                if (tag.trim()) {
+                    sh "aws s3 cp .git/refs/tags/${tag} s3://${env.S3_BUCKET_NAME}/${tagsFolder}${tag}"
+                } else {
+                    echo "Skipping empty tag: [${tag}]"
+                }
+            }
+        }
+    }
+}
+
+
+
+   *************       all  branches pushed from github to s3 bucket          ****************
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHX7QTOPKP'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    sh 'aws s3 ls'
+
+                    // create as current date folder
+                    def currentDate = new Date().format("yyyyMMdd")
+                    env.S3_FOLDER_NAME = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${env.S3_FOLDER_NAME}" 
+                }
+            }
+        }
+
+        stage('Push branches to S3') {
+            steps {
+                script {
+                    // create branches folder with rajesh-branches-folder
+                    def branchesFolder = "${env.S3_FOLDER_NAME}branchesFolder/"
+                    sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${branchesFolder}"
+
+                    // Corrected the source and destination paths
+                    //sh "aws s3 cp . s3://${env.S3_BUCKET_NAME}/${branchesFolder} --recursive"
+                    
+                    def branches = sh(script: 'git branch -r', returnStdout: true).trim().split('\n')
+                    
+                    branches.each { branch ->
+                        // Remove unwanted characters and whitespaces from branch name
+                        def sanitizedBranch = branch.replaceAll(/.*origin\/(\S+).*/, '$1').trim()
+
+                        // create branch folder
+                        def branchFolder = "${env.S3_FOLDER_NAME}${sanitizedBranch}/"
+                        sh "aws s3api put-object --bucket ${env.S3_BUCKET_NAME} --key ${branchFolder}"
+
+                        // Copy files from the branch to the branch folder in S3
+                        sh "git checkout ${sanitizedBranch}"
+                        sh "aws s3 cp . s3://${env.S3_BUCKET_NAME}/${branchFolder} --recursive"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+################## push all brnaches to current-date/branchesfolder/        #################
+
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHX7QTOPKP'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+    }
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    // List contents of the S3 bucket
+                    sh 'aws s3 ls ${S3_BUCKET_NAME}'
+
+                    // Create a current date folder
+                    def currentDate = new Date().format("yyyyMMdd")
+                    env.S3_FOLDER_NAME = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${S3_BUCKET_NAME} --key ${S3_FOLDER_NAME}"
+
+                    // Create 'branchesFolder' inside the current date folder
+                    def branchesFolder = "${S3_FOLDER_NAME}branchesFolder/"
+                    sh "aws s3api put-object --bucket ${S3_BUCKET_NAME} --key ${branchesFolder}"
+                }
+            }
+        }
+
+        stage('Push branches to S3') {
+            steps {
+                script {
+                    // Get the list of remote branches
+                    def branches = sh(script: 'git ls-remote --heads origin', returnStdout: true).trim().split('\n')
+
+                    branches.each { branch ->
+                        // Extract branch name
+                        def sanitizedBranch = branch.replaceAll(/.*refs\/heads\/(\S+).*/, '$1').trim()
+
+                        // Create branch folder inside 'branchesFolder'
+                        def branchFolder = "${S3_FOLDER_NAME}branchesFolder/${sanitizedBranch}/"
+                        sh "aws s3api put-object --bucket ${S3_BUCKET_NAME} --key ${branchFolder}"
+
+                        // Copy files from the branch to the branch folder in S3
+                        sh "git checkout ${sanitizedBranch}"
+                        sh "aws s3 cp . s3://${S3_BUCKET_NAME}/${branchFolder} --recursive"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
