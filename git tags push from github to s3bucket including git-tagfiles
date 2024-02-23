@@ -1,0 +1,53 @@
+
+************    Push git tags from github to S3bucket in currentdatefolder/tagsFolder/tags/tagfiles     ****************
+
+
+pipeline {
+    agent any
+    
+    environment {
+        AWS_ACCESS_KEY_ID     = 'AKIA6ODU7XTHYX57QFOC'
+        AWS_SECRET_ACCESS_KEY = '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'
+        AWS_DEFAULT_REGION    = 'ap-south-1'
+        S3_BUCKET_NAME        = 'amma03'
+        S3_FOLDER             = 'tags' // Specify the folder name where you want to store tags
+    }
+    
+    stages {
+        stage('Git checkout') {
+            steps {
+                script {
+                    git url: 'https://github.com/ravularajesh3333/saraswathi.git', credentialsId: 'git-id'
+                }
+            }
+        }
+        
+        stage('S3 current-date-folder') {
+            steps {
+                script {
+                    // Print the contents of the S3 bucket
+                    sh "aws s3 ls s3://${S3_BUCKET_NAME}/"
+                    
+                    // Create a folder with the current date
+                    def currentDate = new Date().format("yyyyMMdd")
+                    def s3FolderName = "${currentDate}/"
+                    sh "aws s3api put-object --bucket ${S3_BUCKET_NAME} --key ${s3FolderName}"
+                    
+                    // Create a 'tagsFolder' inside the current date folder
+                    def tagsFolder = "${s3FolderName}tagsFolder/"
+                    sh "aws s3api put-object --bucket ${S3_BUCKET_NAME} --key ${tagsFolder}"
+                    
+                    // Get the list of Git tags
+                    def tags = sh(script: 'git tag --list', returnStdout: true).trim().split('\n')
+                    for (def tag in tags) {
+                        // Checkout specific tag
+                        sh "git checkout $tag"
+                        
+                        // Upload files to S3 for the specific tag
+                        sh "aws s3 cp . s3://${S3_BUCKET_NAME}/${tagsFolder}${tag}/ --recursive"
+                    }
+                }
+            }
+        }
+    }
+}
