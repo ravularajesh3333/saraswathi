@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+    environment {
+        GIT_REPO_URL = 'https://github.com/ravularajesh3333/Durga.git'
+        GIT_CREDENTIALS_ID = 'git-id'
+    }
+    
+    stages {
+        stage('Git clone') {
+            steps {
+                script {
+                    // Define repository variable here
+                    def repository = sh(script: "git clone ${env.GIT_REPO_URL} .", returnStdout: true).trim()
+                    echo "Repository cloned at: ${repository}"
+                    
+                    // Use repository variable for further operations if needed
+                }
+            }
+        }
+        stage('Docker image') {
+            steps {
+                script {
+                    sh 'docker images'
+                    sh 'docker build -t durga-amma4 .'
+                    sh 'docker images'
+
+                    sh 'docker volume ls'
+                    sh 'docker volume create durga-volume4'
+                    sh 'docker volume ls'
+
+                    sh 'docker run -d --name durga-cont4 -p 8084:27017 -v durga-volume4:/app durga-amma4'
+                }
+            }
+        }
+        stage('Docker container') {
+            steps {
+                script {
+                    // Use repository variable if needed
+                    // Copy Git files from repository to Docker container
+                    sh "docker cp . durga-cont4:/root/"
+                }
+            }
+        }
+        stage('Execute files inside container') {
+            steps {
+                script {
+                    sh "docker exec durga-cont4 sh -c 'chmod +x /root/raj'"
+                    sh "docker exec durga-cont4 sh -c '/root/raj'"
+        }
+    }
+}
+        
+    }
+}
